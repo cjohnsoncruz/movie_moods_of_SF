@@ -17,6 +17,7 @@ fastparquet
 openpyxl
 #geographic plot/imdb
 plotly
+dash
 folium
 streamlit
 #GPT related func
@@ -24,7 +25,6 @@ openai
 python-dotenv
 geos
 geopandas
-#greppo== 0.0.33
 click==8.0.3
 sodapy
 bs4
