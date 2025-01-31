@@ -17,6 +17,7 @@ fastparquet
 openpyxl
 #geographic plot/imdb
 plotly
+
 dash
 folium
 streamlit
