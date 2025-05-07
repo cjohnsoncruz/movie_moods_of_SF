@@ -1,0 +1,22 @@
+/* Responsive layout for Dash app */
+#main-container {
+    display: flex;
+    flex-direction: row;
+}
+
+@media (max-width: 900px) {
+    html body #main-container {
+        flex-direction: column !important;
+        display: flex !important;
+    }
+    html body #main-container > div {
+        width: 98vw !important;
+        max-width: 100vw !important;
+        min-width: 0 !important;
+    }
+    .dash-graph, .options-panel {
+        width: 98vw !important;
+        max-width: 100vw !important;
+        min-width: 0 !important;
+    }
+}
