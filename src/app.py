@@ -215,8 +215,13 @@ def update_all(radio_filter_value, selected_value, go_n_clicks, clear_n_clicks, 
                 if data:
                     lat = float(data[0]['lat'])
                     lon = float(data[0]['lon'])
-                    user_lat, user_lon = lat, lon
-                    fig.update_layout(map_center={"lat": lat, "lon": lon}, map_zoom=15)
+                    # San Francisco bounding box (approx):
+                    # lat: 37.70 to 37.83, lon: -123.03 to -122.35
+                    if 37.70 <= lat <= 37.83 and -123.03 <= lon <= -122.35:
+                        user_lat, user_lon = lat, lon
+                        fig.update_layout(map_center={"lat": lat, "lon": lon}, map_zoom=15)
+                    else:
+                        closest_movies_text = "Address is outside of San Francisco. Please enter a valid SF address."
                 else:
                     closest_movies_text = "Address not found. Please try a different address."
             else:
@@ -225,7 +230,7 @@ def update_all(radio_filter_value, selected_value, go_n_clicks, clear_n_clicks, 
             closest_movies_text = "Geocoding request timed out. Please try again."
         except Exception as e:
             closest_movies_text = f"Geocoding failed: {e}"
-    if user_lat is not None and user_lon is not None:
+    if user_lat is not None and user_lon is not None and (not closest_movies_text or 'outside of San Francisco' not in closest_movies_text):
         # Add a marker for the entered address
         import plotly.graph_objects as go
         fig.add_trace(go.Scattermap(
