@@ -4,6 +4,16 @@ import pandas as pd
 import os
 import boto3
 import time
+from math import radians, cos, sin, asin, sqrt
+
+def haversine(lat1, lon1, lat2, lon2):
+    """Calculate great-circle distance between two geographic points in meters."""
+    R = 6371000  # Earth radius in meters
+    dlat = radians(lat2 - lat1)
+    dlon = radians(lon2 - lon1)
+    a = sin(dlat/2)**2 + cos(radians(lat1)) * cos(radians(lat2)) * sin(dlon/2)**2
+    c = 2 * asin(sqrt(a))
+    return R * c
 
 # use_s3 = False
 use_s3 = os.getenv("USE_S3", "false").lower() == "true"
@@ -17,9 +27,21 @@ if use_s3:
     S3_KEY    = os.environ["S3_KEY"]
 
     # Download file from S3 if not present locally
-    def download_from_s3(bucket, key, local_path):
+    def download_from_s3(bucket, key, local_path, retries=3, delay=5):
         s3 = boto3.client('s3')
-        s3.download_file(bucket, key, local_path)
+        for attempt in range(1, retries + 1):
+            try:
+                s3.download_file(bucket, key, local_path)
+                print(f"Downloaded {key} to {local_path} (attempt {attempt})")
+                return
+            except Exception as e:
+                print(f"Download attempt {attempt} failed: {e}")
+                if attempt < retries:
+                    print(f"Retrying in {delay}s...")
+                    time.sleep(delay)
+                else:
+                    print("Max retries reached. Aborting.")
+                    raise
 
     # Download with optional TTL-based cache
     ttl = int(os.getenv("S3_TTL_SECONDS", "0"))
@@ -128,7 +150,11 @@ app.layout = html.Div([
             dcc.Input(id='address_input', type='text', placeholder='Enter address...', style={'width': '90%', 'backgroundColor': light_bg, 'color': dark_text}),
             html.Button('Go', id='go_button', n_clicks=0, style={'marginTop': '5px', 'backgroundColor': '#e0e0e0', 'color': dark_text, 'marginRight': '10px'}),
             html.Button('Clear', id='clear_button', n_clicks=0, style={'marginTop': '5px', 'backgroundColor': '#ffeaea', 'color': dark_text}),
-            dcc.Markdown(id='closest_movies_box', style={'marginTop': '15px', 'padding': '10px', 'backgroundColor': '#f5f5f5', 'border': '1px solid #ccc', 'borderRadius': '6px', 'color': dark_text}),
+            dcc.Markdown(
+                id='closest_movies_box',
+                children="Enter an address and click Go to see the closest movies.",
+                style={'marginTop': '15px', 'padding': '10px', 'backgroundColor': '#f5f5f5', 'border': '1px solid #ccc', 'borderRadius': '6px', 'color': dark_text}
+            ),
         
         ],
         className='options-panel',
