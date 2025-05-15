@@ -1,6 +1,6 @@
 #install requirements
 
---prefer-binary
+boto3
 seaborn==0.12.2
 scikit-learn==1.5.2
 matplotlib==3.7.0
@@ -17,7 +17,8 @@ fastparquet
 openpyxl
 #geographic plot/imdb
 plotly
-dash[testing] pytest
+dash[testing]
+pytest
 dash
 folium
 streamlit
@@ -31,4 +32,5 @@ sodapy
 bs4
 thefuzz
 cinemagoer
-shapely @ https://github.com/cgohlke/geospatial-wheels/releases/download/v2025.1.20/shapely-2.0.6-cp312-cp312-win_amd64.whl
+shapely @ https://github.com/cgohlke/geospatial-wheels/releases/download/v2025.1.20/shapely-2.0.6-cp312-cp312-win_amd64.whl ; sys_platform == "win32"
+shapely>=2.0.6 ; sys_platform != "win32"

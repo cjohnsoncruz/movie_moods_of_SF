@@ -4,13 +4,15 @@ import pandas as pd
 import os
 import boto3
 
-use_s3 = False
+# use_s3 = False
+use_s3 = os.getenv("USE_S3", "false").lower() == "true"
+LOCAL_DATA_PATH = "data/processed_movie_locations.csv"
+
 if use_s3:
     # --- S3 CONFIG ---
     # Set your S3 bucket and key for the data file
-    S3_BUCKET = os.environ.get('S3_BUCKET', 'your-bucket-name')
-    S3_KEY = os.environ.get('S3_KEY', 'data/processed_movie_locations.csv')
-    LOCAL_DATA_PATH = 'data/processed_movie_locations.csv'
+    S3_BUCKET = os.environ["S3_BUCKET"]
+    S3_KEY    = os.environ["S3_KEY"]
 
     # Download file from S3 if not present locally
     def download_from_s3(bucket, key, local_path):
@@ -26,7 +28,7 @@ if use_s3:
 # Note: AWS credentials must be available in the environment (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, and optionally AWS_DEFAULT_REGION)
 
 # --- Data & Params ---
-plot_df = pd.read_csv('data/processed_movie_locations.csv') # Load your DataFrame (update filename if needed)
+plot_df = pd.read_csv(LOCAL_DATA_PATH) # Load your DataFrame (update filename if needed)
 # DEPRECATED- MAPBOX DROPPED in 2024 # Read Mapbox token from file and set it
 # with open('C:\\Users\\13car\\Dropbox\\local_github_repos_personal\\mapbox_token.txt', 'r') as f:
 #     mapbox_key = f.read().strip()
@@ -260,4 +262,5 @@ def update_all(radio_filter_value, selected_value, go_n_clicks, clear_n_clicks, 
     return options, value, fig, closest_movies_text, address
 
 if __name__ == '__main__':
-    app.run_server(debug=True, use_reloader=False)
+    # Use updated run() method in Dash
+    app.run(debug=True, use_reloader=False, host='0.0.0.0', port=8050)
