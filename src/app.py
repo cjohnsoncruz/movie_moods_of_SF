@@ -3,12 +3,14 @@ import plotly.express as px
 import pandas as pd
 import os
 import boto3
+import time
 
 # use_s3 = False
 use_s3 = os.getenv("USE_S3", "false").lower() == "true"
 LOCAL_DATA_PATH = "data/processed_movie_locations.csv"
 
 if use_s3:
+    print("Using S3")
     # --- S3 CONFIG ---
     # Set your S3 bucket and key for the data file
     S3_BUCKET = os.environ["S3_BUCKET"]
@@ -19,11 +21,19 @@ if use_s3:
         s3 = boto3.client('s3')
         s3.download_file(bucket, key, local_path)
 
-    if not os.path.exists(LOCAL_DATA_PATH):
-        print(f"{LOCAL_DATA_PATH} not found, downloading from S3...")
+    # Download with optional TTL-based cache
+    ttl = int(os.getenv("S3_TTL_SECONDS", "0"))
+    needs = True
+    if os.path.exists(LOCAL_DATA_PATH) and ttl > 0:
+        age = time.time() - os.path.getmtime(LOCAL_DATA_PATH)
+        if age < ttl:
+            print(f"Cache hit: {LOCAL_DATA_PATH} is {age:.0f}s old (< {ttl}s), skipping download.")
+            needs = False
+    if needs:
+        print(f"Downloading {LOCAL_DATA_PATH} from s3://{S3_BUCKET}/{S3_KEY}...")
         os.makedirs(os.path.dirname(LOCAL_DATA_PATH), exist_ok=True)
         download_from_s3(S3_BUCKET, S3_KEY, LOCAL_DATA_PATH)
-        print(f"Downloaded {LOCAL_DATA_PATH} from s3://{S3_BUCKET}/{S3_KEY}")
+        print("Download complete.")
 
 # Note: AWS credentials must be available in the environment (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, and optionally AWS_DEFAULT_REGION)
 
@@ -56,7 +66,8 @@ hovertemplate = (
 )
 
 markdown_text = """
-This dashboard shows filming locations for movies in San Francisco. Use the controls to filter by neighborhood.
+This dashboard shows filming locations for movies in San Francisco.
+ Use the controls to filter by neighborhood. Filtering must be enabled for neighborhood selection to work.
 """
 dropdown_col = 'nhood'
 dropdown_list = ['All'] + sorted(plot_df[dropdown_col].dropna().unique())
