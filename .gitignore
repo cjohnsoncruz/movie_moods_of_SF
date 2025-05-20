@@ -1,0 +1,29 @@
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+
+# Environment variables
+.env
+
+# Virtual environments
+env/
+venv/
+.venv/
+
+# Pytest cache
+.pytest_cache/
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
+
+# IDE project files
+.vscode/
+.idea/
+
+# Operating system files
+.DS_Store
+Thumbs.db
+
+# Docker compose overrides and logs
+docker-compose.override.yml
+*.log

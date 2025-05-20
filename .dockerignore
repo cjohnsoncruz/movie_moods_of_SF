@@ -1,0 +1,40 @@
+# Ignore Python cache and compiled files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Ignore Jupyter notebook checkpoints
+.ipynb_checkpoints/
+
+# Ignore data that shouldn't be in the image
+*.csv
+*.xlsx
+*.xls
+*.parquet
+*.feather
+*.arrow
+*.h5
+*.db
+*.sqlite
+*.log
+*.env
+
+# Ignore virtual environments
+venv/
+env/
+
+# Ignore git
+.git
+.gitignore
+
+# Ignore OS files
+.DS_Store
+Thumbs.db
+
+# Ignore test output
+htmlcov/
+.coverage
+*.egg-info/
+dist/
+build/

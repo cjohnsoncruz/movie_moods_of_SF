@@ -1,0 +1,27 @@
+{
+    "family": "movie-moods-sf-task",
+    "networkMode": "awsvpc",
+    "requiresCompatibilities": ["FARGATE"],
+    "cpu": "512",
+    "memory": "1024",
+    "executionRoleArn": "arn:aws:iam::806683786339:role/ecsTaskExecutionRole",  
+    "taskRoleArn":     "arn:aws:iam::806683786339:role/ecsTaskExecutionRole",
+    "containerDefinitions": [{
+      "name":  "web",
+      "image": "806683786339.dkr.ecr.us-west-2.amazonaws.com/movie-moods-sf:1.0.1",
+      "portMappings":[{"containerPort":8050}],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group":  "/ecs/movie-moods-sf",       
+          "awslogs-region": "us-west-2",               
+          "awslogs-stream-prefix": "web"               
+            }
+        },
+      "environment":[
+        {"name":"USE_S3",   "value":"true"},
+        {"name":"S3_BUCKET","value":"my-sf-movies-data"},
+        {"name":"S3_KEY",   "value":"data/processed_movie_locations.csv"}
+      ]
+    }]
+}

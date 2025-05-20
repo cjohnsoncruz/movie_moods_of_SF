@@ -1,0 +1,7 @@
+[
+  {
+    "targetGroupArn": "arn:aws:elasticloadbalancing:us-west-2:806683786339:targetgroup/movie-mood-vpc/55104b005da5bf18",
+    "containerName": "web",
+    "containerPort": 8050
+  }
+]

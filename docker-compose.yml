@@ -1,0 +1,15 @@
+services:
+  web:
+    build: .
+    container_name: movie_moods_sf
+    ports:
+      - "8050:8050"
+    env_file:
+      - .env
+    environment:
+      - HOME=/home/app
+    volumes:
+      - ./data:/app/data
+      # - "C:/Users/13car/.aws:/root/.aws:ro" # read-only mount of your CLI creds
+
+    command: ["python", "src/app.py"]

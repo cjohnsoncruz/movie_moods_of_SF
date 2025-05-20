@@ -1,0 +1,47 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      CLUSTER: movie-moods-sf-cluster
+      SERVICE: movie-moods-sf-svc
+      TASKDEF_IN: aws/task_definition.json
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region:            ${{ secrets.AWS_REGION }}
+
+      - name: Log in to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Build & push Docker image
+        run: |
+          IMAGE_TAG=${{ github.sha }}
+          docker build -t ${{ secrets.ECR_REGISTRY }}:$IMAGE_TAG .
+          docker push   ${{ secrets.ECR_REGISTRY }}:$IMAGE_TAG
+
+      - name: Register new task definition
+        run: |
+          IMAGE_URI=${{ secrets.ECR_REGISTRY }}:$IMAGE_TAG
+          sed "s|\"image\":.*|\"image\": \"${IMAGE_URI}\",|" \
+            $TASKDEF_IN > taskdef.json
+          aws ecs register-task-definition --cli-input-json file://taskdef.json
+
+      - name: Deploy to ECS
+        run: |
+          aws ecs update-service \
+            --cluster $CLUSTER \
+            --service $SERVICE \
+            --force-new-deployment
