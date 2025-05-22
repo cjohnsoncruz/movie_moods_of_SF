@@ -33,15 +33,19 @@ jobs:
           docker push   ${{ secrets.ECR_REGISTRY }}:$IMAGE_TAG
 
       - name: Register new task definition
+        id: register
         run: |
           IMAGE_URI=${{ secrets.ECR_REGISTRY }}:$IMAGE_TAG
           sed "s|\"image\":.*|\"image\": \"${IMAGE_URI}\",|" \
             $TASKDEF_IN > taskdef.json
-          aws ecs register-task-definition --cli-input-json file://taskdef.json
+          echo "::set-output name=arn::$(aws ecs register-task-definition \
+            --cli-input-json file://taskdef.json \
+            --query 'taskDefinition.taskDefinitionArn' --output text)"
 
       - name: Deploy to ECS
         run: |
           aws ecs update-service \
             --cluster $CLUSTER \
             --service $SERVICE \
+            --task-definition ${{ steps.register.outputs.arn }} \
             --force-new-deployment
