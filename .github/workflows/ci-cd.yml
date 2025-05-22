@@ -11,6 +11,7 @@ jobs:
       CLUSTER: movie-moods-sf-cluster
       SERVICE: movie-moods-sf-svc
       TASKDEF_IN: aws/task_definition.json
+      IMAGE_TAG: ${{ github.sha }}
 
     steps:
       - name: Checkout code
@@ -28,14 +29,13 @@ jobs:
 
       - name: Build & push Docker image
         run: |
-          IMAGE_TAG=${{ github.sha }}
-          docker build -t ${{ secrets.ECR_REGISTRY }}:$IMAGE_TAG .
-          docker push   ${{ secrets.ECR_REGISTRY }}:$IMAGE_TAG
+          docker build -t ${{ secrets.ECR_REGISTRY }}:${IMAGE_TAG} .
+          docker push   ${{ secrets.ECR_REGISTRY }}:${IMAGE_TAG}
 
       - name: Register new task definition
         id: register
         run: |
-          IMAGE_URI=${{ secrets.ECR_REGISTRY }}:$IMAGE_TAG
+          IMAGE_URI=${{ secrets.ECR_REGISTRY }}:${IMAGE_TAG}
           sed "s|\"image\":.*|\"image\": \"${IMAGE_URI}\",|" \
             $TASKDEF_IN > taskdef.json
           echo "::set-output name=arn::$(aws ecs register-task-definition \
