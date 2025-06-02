@@ -4,7 +4,20 @@ import pandas as pd
 import os
 import boto3
 import time
+import dotenv
 from math import radians, cos, sin, asin, sqrt
+
+# Only load from .env file in development environment (not in production/cloud)
+if os.environ.get('AWS_EXECUTION_ENV') is None:
+    try:
+        from dotenv import load_dotenv
+        env_loaded = load_dotenv()  # This will load .env from the current or parent directories
+        if env_loaded:
+            print("Development mode: Environment variables loaded from .env file")
+        else:
+            print("Development mode: No .env file found, using existing environment variables")
+    except ImportError:
+        print("python-dotenv not installed. Using environment variables directly.")
 
 def haversine(lat1, lon1, lat2, lon2):
     """Calculate great-circle distance between two geographic points in meters."""
@@ -60,12 +73,30 @@ if use_s3:
 # Note: AWS credentials must be available in the environment (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, and optionally AWS_DEFAULT_REGION)
 
 # --- Data & Params ---
-plot_df = pd.read_csv(LOCAL_DATA_PATH) # Load your DataFrame (update filename if needed)
+try:
+    print(f"Attempting to load data from {LOCAL_DATA_PATH}...")
+    if os.path.exists(LOCAL_DATA_PATH):
+        print(f"File exists: {LOCAL_DATA_PATH}, size: {os.path.getsize(LOCAL_DATA_PATH)} bytes")
+    else:
+        print(f"WARNING: File does not exist: {LOCAL_DATA_PATH}")
+        # Create data directory if it doesn't exist
+        os.makedirs(os.path.dirname(LOCAL_DATA_PATH), exist_ok=True)
+        
+    plot_df = pd.read_csv(LOCAL_DATA_PATH) # Load your DataFrame
+    print(f"Data loaded successfully with {len(plot_df)} rows")
+    print(f"Columns: {plot_df.columns.tolist()}")
+    print("Sample data:")
+    print(plot_df.head(2))
+except Exception as e:
+    print(f"ERROR loading data: {e}")
+    # Create empty dataframe with required columns as fallback
+    plot_df = pd.DataFrame(columns=['title', 'address', 'release_year', 'nhood', 'latitude', 'longitude', 'release_decade'])
+    print("Created empty dataframe as fallback")
 # DEPRECATED- MAPBOX DROPPED in 2024 # Read Mapbox token from file and set it
 # with open('C:\\Users\\13car\\Dropbox\\local_github_repos_personal\\mapbox_token.txt', 'r') as f:
 #     mapbox_key = f.read().strip()
 # px.set_mapbox_access_token(mapbox_key)
-default_map_style = 'carto-voyager'
+default_map_style = 'carto-voyager'  # Same as original code
 print(f"With default map style: {default_map_style}")
 map_params = dict(
     lon="longitude",
@@ -76,7 +107,7 @@ map_params = dict(
     color="release_decade",
     color_continuous_scale='jet',
     height=600,
-    map_style=default_map_style #2024 transition to maplibre from mapbox
+    map_style=default_map_style  # Matching original code
 )
 
 # Custom hovertemplate for map points
@@ -87,9 +118,9 @@ hovertemplate = (
     'Neighborhood: %{customdata[3]}<extra></extra>'
 )
 
-markdown_text = """ Welcome to the Movies of San Francisco Dashboard!
+markdown_text = """ Welcome to the Movies of San Francisco Dashboard!\
 This dashboard shows filming locations for movies in San Francisco.
-Use the controls to filter by neighborhood. Filtering must be enabled for neighborhood selection to work.
+Use the controls to filter by neighborhood. Filtering must be enabled for neighborhood selection to work.\
 Built May 2025 by Carlos Johnson-Cruz
 """
 dropdown_col = 'nhood'
@@ -140,7 +171,14 @@ app.layout = html.Div([
                 options=[{'label': i, 'value': i} for i in ['No Filter', 'Filtering']],
                 id='use_filter_radio',
                 value='No Filter',
-                style={'marginBottom': 15, 'color': dark_text, 'backgroundColor': light_bg}
+                style={
+                    'marginBottom': 15, 
+                    'color': dark_text, 
+                    'backgroundColor': light_bg,
+                    'display': 'flex',
+                    'flexDirection': 'column',
+                    'gap': '5px'
+                }
             ),
             html.Label('Neighborhood:', style={'fontWeight': 'bold', 'color': dark_text}),
             dcc.Dropdown(
@@ -149,14 +187,45 @@ app.layout = html.Div([
             ),
             html.Label('Go to Address:', style={'fontWeight': 'bold', 'marginTop': 10, 'color': dark_text}),
             dcc.Input(id='address_input', type='text', placeholder='Enter address...', style={'width': '90%', 'backgroundColor': light_bg, 'color': dark_text}),
-            html.Button('Go', id='go_button', n_clicks=0, style={'marginTop': '5px', 'backgroundColor': '#e0e0e0', 'color': dark_text, 'marginRight': '10px'}),
-            html.Button('Clear', id='clear_button', n_clicks=0, style={'marginTop': '5px', 'backgroundColor': '#ffeaea', 'color': dark_text}),
+            # Button container for better alignment
+            html.Div([
+                html.Button(
+                    'GO', 
+                    id='go_button', 
+                    n_clicks=0, 
+                    style={
+                        'backgroundColor': '#e0e0e0', 
+                        'color': dark_text, 
+                        'marginRight': '10px',
+                        'padding': '8px 16px',
+                        'fontSize': '14px',
+                        'fontWeight': 'bold',
+                        'border': '1px solid #ccc',
+                        'borderRadius': '4px',
+                        'cursor': 'pointer'
+                    }
+                ),
+                html.Button(
+                    'CLEAR', 
+                    id='clear_button', 
+                    n_clicks=0, 
+                    style={
+                        'backgroundColor': '#ffeaea', 
+                        'color': dark_text,
+                        'padding': '8px 16px',
+                        'fontSize': '14px',
+                        'fontWeight': 'bold',
+                        'border': '1px solid #ccc',
+                        'borderRadius': '4px',
+                        'cursor': 'pointer'
+                    }
+                ),
+            ], style={'display': 'flex', 'marginTop': '10px'}),
             dcc.Markdown(
                 id='closest_movies_box',
                 children="Enter an address and click Go to see the closest movies.",
                 style={'marginTop': '15px', 'padding': '10px', 'backgroundColor': '#f5f5f5', 'border': '1px solid #ccc', 'borderRadius': '6px', 'color': dark_text}
             ),
-        
         ],
         className='options-panel',
         style={
@@ -231,7 +300,7 @@ def update_all(radio_filter_value, selected_value, go_n_clicks, clear_n_clicks, 
         customdata=filt_df[['title', 'address', 'release_year', 'nhood']].values,
         hovertemplate=hovertemplate
     )
-    fig.update_layout(map_style=default_map_style)
+    fig.update_layout(map_style=default_map_style)  # Match original code
     # Closest movies logic
     ctx = callback_context
     closest_movies_text = ''
