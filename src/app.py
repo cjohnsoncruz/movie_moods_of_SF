@@ -118,10 +118,10 @@ hovertemplate = (
     'Neighborhood: %{customdata[3]}<extra></extra>'
 )
 
-markdown_text = """ Welcome to the Movies of San Francisco Dashboard!\
-This dashboard shows filming locations for movies in San Francisco.
-Use the controls to filter by neighborhood. Filtering must be enabled for neighborhood selection to work.\
-Built May 2025 by Carlos Johnson-Cruz
+markdown_text = """ Welcome to the Movies of San Francisco Dashboard! \
+This dashboard shows filming locations for movies in San Francisco. \
+Use the controls to filter by neighborhood. Filtering must be enabled for neighborhood selection to work. \
+Built May 2025 by Carlos Johnson-Cruz \
 """
 dropdown_col = 'nhood'
 dropdown_list = ['All'] + sorted(plot_df[dropdown_col].dropna().unique())
