@@ -121,7 +121,7 @@ hovertemplate = (
 markdown_text = """ Welcome to the Movies of San Francisco Dashboard! \
 This dashboard shows filming locations for movies in San Francisco. \
 Use the controls to filter by neighborhood. Filtering must be enabled for neighborhood selection to work. \
-Built May 2025 by Carlos Johnson-Cruz \
+Built May 2025 by Carlos Johnson-Cruz. (Last updated: June 8th 2025) \
 """
 dropdown_col = 'nhood'
 dropdown_list = ['All'] + sorted(plot_df[dropdown_col].dropna().unique())
@@ -157,7 +157,7 @@ dark_text = '#222222'
 
 app.layout = html.Div([
     html.H1(
-        'Mapping Filming Locations in San Francisco',
+        'Movies of San Francisco: An Interactive Map of Filming Locations',
         style={'textAlign': 'left', 'color': dark_text, 'marginBottom': 10, 'marginTop': 10}
     ),
     html.Div([
@@ -245,6 +245,11 @@ style={'backgroundColor': light_bg, 'minHeight': '100vh'})
 # --- Refactored Callbacks ---
 from dash.dependencies import Output
 import numpy as np
+import requests
+import time
+from dash import callback_context
+from dash.dependencies import Input, Output, State
+import plotly.graph_objects as go
 
 def haversine(lat1, lon1, lat2, lon2):
     # Calculate the great-circle distance between two points on the Earth (in meters)
@@ -257,10 +262,6 @@ def haversine(lat1, lon1, lat2, lon2):
     c = 2 * np.arctan2(np.sqrt(a), np.sqrt(1 - a))
     return R * c
 
-import requests
-import time
-from dash import callback_context
-from dash.dependencies import Input, Output, State
 # Global variable to track last geocode time
 last_geocode_time = 0
 
@@ -341,7 +342,6 @@ def update_all(radio_filter_value, selected_value, go_n_clicks, clear_n_clicks, 
             closest_movies_text = f"Geocoding failed: {e}"
     if user_lat is not None and user_lon is not None and (not closest_movies_text or 'outside of San Francisco' not in closest_movies_text):
         # Add a marker for the entered address
-        import plotly.graph_objects as go
         fig.add_trace(go.Scattermap(
             lat=[user_lat],
             lon=[user_lon],
@@ -363,9 +363,9 @@ def update_all(radio_filter_value, selected_value, go_n_clicks, clear_n_clicks, 
         closest_movies_text = '  \n'.join([
             f"**{row['title']}** ({camelcase_address(row['address'])}) - {row['distance']:.0f} m" for _, row in closest.iterrows()
         ])
-        closest_movies_text = f"Closest Movies: \n{closest_movies_text}" if closest_movies_text else "No nearby movies found."
+        closest_movies_text = f"Closest Filming locations: \n {closest_movies_text}" if closest_movies_text else "No nearby filming locations found."
     elif not closest_movies_text:
-        closest_movies_text = "Enter an address and click Go to see the closest movies."
+        closest_movies_text = "Enter an address and click Go to see the closest filming locations."
     return options, value, fig, closest_movies_text, address
 
 if __name__ == '__main__':
