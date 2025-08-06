@@ -19,15 +19,6 @@ if os.environ.get('AWS_EXECUTION_ENV') is None:
     except ImportError:
         print("python-dotenv not installed. Using environment variables directly.")
 
-def haversine(lat1, lon1, lat2, lon2):
-    """Calculate great-circle distance between two geographic points in meters."""
-    R = 6371000  # Earth radius in meters
-    dlat = radians(lat2 - lat1)
-    dlon = radians(lon2 - lon1)
-    a = sin(dlat/2)**2 + cos(radians(lat1)) * cos(radians(lat2)) * sin(dlon/2)**2
-    c = 2 * asin(sqrt(a))
-    return R * c
-
 # use_s3 = False
 use_s3 = os.getenv("USE_S3", "false").lower() == "true"
 LOCAL_DATA_PATH = "data/processed_movie_locations.csv"
@@ -83,6 +74,8 @@ try:
         os.makedirs(os.path.dirname(LOCAL_DATA_PATH), exist_ok=True)
         
     plot_df = pd.read_csv(LOCAL_DATA_PATH) # Load your DataFrame
+    plot_df['address'] = plot_df['address'].str.title()#capitalize addresses
+
     print(f"Data loaded successfully with {len(plot_df)} rows")
     print(f"Columns: {plot_df.columns.tolist()}")
     print("Sample data:")
@@ -104,25 +97,28 @@ map_params = dict(
     zoom=11,
     hover_name=None,  # We'll use a custom hovertemplate
     hover_data=None,
-    color="release_decade",
+    color="release_year",
+    labels = {'release_decade': 'Release Decade', 'release_year': 'Release Year'},
     color_continuous_scale='jet',
     height=600,
     map_style=default_map_style  # Matching original code
 )
-
+print(plot_df['release_decade'].unique())
 # Custom hovertemplate for map points
 hovertemplate = (
     '<b>%{customdata[0]}</b><br>' +
-    'Address: %{customdata[1]}<br>' +
-    'Year: %{customdata[2]}<br>' +
+    'Closest Address: %{customdata[1]}<br>' +
+    'Release Year: %{customdata[2]}<br>' +
     'Neighborhood: %{customdata[3]}<extra></extra>'
 )
 
 markdown_text = """ Welcome to the Movies of San Francisco Dashboard! \
-This dashboard shows filming locations for movies in San Francisco. \
+This dashboard shows filming locations for television and film productions in San Francisco. \
+\n
 Use the controls to filter by neighborhood. Filtering must be enabled for neighborhood selection to work. \
-Built May 2025 by Carlos Johnson-Cruz. (Last updated: June 8th 2025) \
 """
+
+attribution_text = """ Built May 2025 by Carlos Johnson-Cruz. (Last updated: June 8th 2025) """ 
 dropdown_col = 'nhood'
 dropdown_list = ['All'] + sorted(plot_df[dropdown_col].dropna().unique())
 
@@ -154,10 +150,15 @@ app.index_string = '''
 
 light_bg = '#f9f9f9'
 dark_text = '#222222'
-
-app.layout = html.Div([
+## app layout starts here 
+app.layout = html.Div(
+    [
     html.H1(
         'Movies of San Francisco: An Interactive Map of Filming Locations',
+        style={'textAlign': 'left', 'color': dark_text, 'marginBottom': 10, 'marginTop': 10}
+    ),
+    html.H6(
+        f'Plotting {len(plot_df)} locations from {len(plot_df["title"].unique())} productions released from {plot_df["release_year"].min()}-{plot_df["release_year"].max()}:',
         style={'textAlign': 'left', 'color': dark_text, 'marginBottom': 10, 'marginTop': 10}
     ),
     html.Div([
@@ -166,21 +167,21 @@ app.layout = html.Div([
         ], style={'flex': 2, 'padding': 20, 'backgroundColor': light_bg, 'display': 'flex', 'marginRight': '20px'}),
         html.Div([
             dcc.Markdown(children=markdown_text, style={'color': dark_text, 'backgroundColor': light_bg}),
-            html.Label('Filter Options:', style={'fontWeight': 'bold', 'marginTop': 10, 'color': dark_text}),
-            dcc.RadioItems(
-                options=[{'label': i, 'value': i} for i in ['No Filter', 'Filtering']],
-                id='use_filter_radio',
-                value='No Filter',
-                style={
-                    'marginBottom': 15, 
-                    'color': dark_text, 
-                    'backgroundColor': light_bg,
-                    'display': 'flex',
-                    'flexDirection': 'column',
-                    'gap': '5px'
-                }
-            ),
-            html.Label('Neighborhood:', style={'fontWeight': 'bold', 'color': dark_text}),
+            # html.Label('Filter Options:', style={'fontWeight': 'bold', 'marginTop': 10, 'color': dark_text}),
+            # dcc.RadioItems(
+            #     options=[{'label': i, 'value': i} for i in ['No Filter', 'Filtering']],
+            #     id='use_filter_radio',
+            #     value='No Filter',
+            #     style={
+            #         'marginBottom': 15, 
+            #         'color': dark_text, 
+            #         'backgroundColor': light_bg,
+            #         'display': 'flex',
+            #         'flexDirection': 'row',
+            #         'gap': '5px'
+            #     }
+            # ),
+            html.Label('Filter by Neighborhood:', style={'fontWeight': 'bold', 'color': dark_text}),
             dcc.Dropdown(
                 id='dropdown_list',
                 style={'backgroundColor': light_bg, 'color': dark_text},
@@ -196,9 +197,10 @@ app.layout = html.Div([
                     style={
                         'backgroundColor': '#e0e0e0', 
                         'color': dark_text, 
-                        'marginRight': '10px',
-                        'padding': '8px 16px',
-                        'fontSize': '14px',
+                        'marginRight': '5px',
+                        'padding': '8px 12px',
+                        'lineHeight': 'normal',
+                        'fontSize': '12px',
                         'fontWeight': 'bold',
                         'border': '1px solid #ccc',
                         'borderRadius': '4px',
@@ -212,8 +214,9 @@ app.layout = html.Div([
                     style={
                         'backgroundColor': '#ffeaea', 
                         'color': dark_text,
-                        'padding': '8px 16px',
-                        'fontSize': '14px',
+                        'padding': '8px 12px',
+                        'lineHeight': 'normal',
+                        'fontSize': '12px',
                         'fontWeight': 'bold',
                         'border': '1px solid #ccc',
                         'borderRadius': '4px',
@@ -224,7 +227,7 @@ app.layout = html.Div([
             dcc.Markdown(
                 id='closest_movies_box',
                 children="Enter an address and click Go to see the closest movies.",
-                style={'marginTop': '15px', 'padding': '10px', 'backgroundColor': '#f5f5f5', 'border': '1px solid #ccc', 'borderRadius': '6px', 'color': dark_text}
+                style={'marginTop': '10px', 'padding': '10px', 'backgroundColor': '#f5f5f5', 'border': '1px solid #ccc', 'borderRadius': '6px', 'color': dark_text}
             ),
         ],
         className='options-panel',
@@ -239,7 +242,11 @@ app.layout = html.Div([
     ],
     style={'display': 'flex', 'flexDirection': 'row', 'backgroundColor': light_bg},
     id='main-container'),
-],
+    dcc.Markdown(
+                attribution_text,
+                style={'padding': '10px', 'color': dark_text, 'fontSize': '8px'}
+            )
+], #app layout ends here
 style={'backgroundColor': light_bg, 'minHeight': '100vh'})
 
 # --- Refactored Callbacks ---
@@ -271,19 +278,18 @@ last_geocode_time = 0
      Output('graph', 'figure'),
      Output('closest_movies_box', 'children'),
      Output('address_input', 'value')],
-    [Input('use_filter_radio', 'value'),
-     Input('dropdown_list', 'value'),
+    [Input('dropdown_list', 'value'),
      Input('go_button', 'n_clicks'),
      Input('clear_button', 'n_clicks')],
     [State('address_input', 'value')]
 )
-def update_all(radio_filter_value, selected_value, go_n_clicks, clear_n_clicks, address):
+def update_all(selected_value, go_n_clicks, clear_n_clicks, address):
     # Dropdown options and value
     options = [{'label': n, 'value': n} for n in dropdown_list]
     # Default to 'All' if nothing selected
     value = selected_value if selected_value else 'All'
     # Filter dataframe
-    if value == 'All' or radio_filter_value == 'No Filter' or not value:
+    if value == 'All' or not value:
         filt_df = plot_df
     else:
         filt_df = plot_df[plot_df[dropdown_col] == value]
@@ -361,7 +367,7 @@ def update_all(radio_filter_value, selected_value, go_n_clicks, clear_n_clicks, 
         def camelcase_address(addr):
             return ' '.join([w.capitalize() for w in str(addr).split()])
         closest_movies_text = '  \n'.join([
-            f"**{row['title']}** ({camelcase_address(row['address'])}) - {row['distance']:.0f} m" for _, row in closest.iterrows()
+            f"* **{row['title']}** ({camelcase_address(row['address'])}) - {row['distance']:.0f} m" for _, row in closest.iterrows()
         ])
         closest_movies_text = f"Closest Filming locations: \n {closest_movies_text}" if closest_movies_text else "No nearby filming locations found."
     elif not closest_movies_text:
@@ -370,4 +376,4 @@ def update_all(radio_filter_value, selected_value, go_n_clicks, clear_n_clicks, 
 
 if __name__ == '__main__':
     # Use updated run() method in Dash
-    app.run(debug=True, use_reloader=False, host='0.0.0.0', port=8050)
+    app.run(debug=True, use_reloader=True, host='0.0.0.0', port=8050)
