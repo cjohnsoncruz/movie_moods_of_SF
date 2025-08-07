@@ -98,7 +98,7 @@ map_params = dict(
     hover_name=None,  # We'll use a custom hovertemplate
     hover_data=None,
     color="release_year",
-    labels = {'release_decade': 'Release Decade', 'release_year': 'Release Year'},
+    labels = {'release_decade': 'Release Decade', 'release_year': f'Release <br> Year'},
     color_continuous_scale='jet',
     height=600,
     map_style=default_map_style  # Matching original code
@@ -153,99 +153,38 @@ dark_text = '#222222'
 ## app layout starts here 
 app.layout = html.Div(
     [
-    html.H1(
-        'Movies of San Francisco: An Interactive Map of Filming Locations',
+    html.H3(
+        'Movies of San Francisco:',
         style={'textAlign': 'left', 'color': dark_text, 'marginBottom': 10, 'marginTop': 10}
     ),
     html.H6(
-        f'Plotting {len(plot_df)} locations from {len(plot_df["title"].unique())} productions released from {plot_df["release_year"].min()}-{plot_df["release_year"].max()}:',
+        f' An Interactive Map of Filming Locations, plotting {len(plot_df)} locations from {len(plot_df["title"].unique())} productions released from {plot_df["release_year"].min()}-{plot_df["release_year"].max()}:',
         style={'textAlign': 'left', 'color': dark_text, 'marginBottom': 10, 'marginTop': 10}
-    ),
+    ), #end title section
     html.Div([
-        html.Div([
-            dcc.Graph(id='graph', style={'height': '600px', 'width': '900px', 'backgroundColor': light_bg, 'boxShadow': '0 2px 8px rgba(0,0,0,0.1)'})
-        ], style={'flex': 2, 'padding': 20, 'backgroundColor': light_bg, 'display': 'flex', 'marginRight': '20px'}),
-        html.Div([
+        html.Div([dcc.Graph(id='graph', style={ #map style
+                'height': '50vh', #50% of viewport height
+                'width': '60vw', #60% of viewport width
+                'backgroundColor': light_bg,
+                 'boxShadow': '0 2px 8px rgba(0,0,0,0.1)'})], 
+                 className='map-container',
+                 style={'flex': 2, 'padding': 20, 'backgroundColor': light_bg, 'display': 'flex', 'marginRight': '20px'}),
+        html.Div([# sidebar
             dcc.Markdown(children=markdown_text, style={'color': dark_text, 'backgroundColor': light_bg}),
-            # html.Label('Filter Options:', style={'fontWeight': 'bold', 'marginTop': 10, 'color': dark_text}),
-            # dcc.RadioItems(
-            #     options=[{'label': i, 'value': i} for i in ['No Filter', 'Filtering']],
-            #     id='use_filter_radio',
-            #     value='No Filter',
-            #     style={
-            #         'marginBottom': 15, 
-            #         'color': dark_text, 
-            #         'backgroundColor': light_bg,
-            #         'display': 'flex',
-            #         'flexDirection': 'row',
-            #         'gap': '5px'
-            #     }
-            # ),
             html.Label('Filter by Neighborhood:', style={'fontWeight': 'bold', 'color': dark_text}),
-            dcc.Dropdown(
-                id='dropdown_list',
-                style={'backgroundColor': light_bg, 'color': dark_text},
-            ),
+            dcc.Dropdown(id='dropdown_list', style={'backgroundColor': light_bg, 'color': dark_text}),
             html.Label('Go to Address:', style={'fontWeight': 'bold', 'marginTop': 10, 'color': dark_text}),
             dcc.Input(id='address_input', type='text', placeholder='Enter address...', style={'width': '90%', 'backgroundColor': light_bg, 'color': dark_text}),
-            # Button container for better alignment
-            html.Div([
-                html.Button(
-                    'GO', 
-                    id='go_button', 
-                    n_clicks=0, 
-                    style={
-                        'backgroundColor': '#e0e0e0', 
-                        'color': dark_text, 
-                        'marginRight': '5px',
-                        'padding': '8px 12px',
-                        'lineHeight': 'normal',
-                        'fontSize': '12px',
-                        'fontWeight': 'bold',
-                        'border': '1px solid #ccc',
-                        'borderRadius': '4px',
-                        'cursor': 'pointer'
-                    }
-                ),
-                html.Button(
-                    'CLEAR', 
-                    id='clear_button', 
-                    n_clicks=0, 
-                    style={
-                        'backgroundColor': '#ffeaea', 
-                        'color': dark_text,
-                        'padding': '8px 12px',
-                        'lineHeight': 'normal',
-                        'fontSize': '12px',
-                        'fontWeight': 'bold',
-                        'border': '1px solid #ccc',
-                        'borderRadius': '4px',
-                        'cursor': 'pointer'
-                    }
-                ),
-            ], style={'display': 'flex', 'marginTop': '10px'}),
-            dcc.Markdown(
-                id='closest_movies_box',
-                children="Enter an address and click Go to see the closest movies.",
-                style={'marginTop': '10px', 'padding': '10px', 'backgroundColor': '#f5f5f5', 'border': '1px solid #ccc', 'borderRadius': '6px', 'color': dark_text}
-            ),
+            html.Div([html.Button('GO', id='go_button', n_clicks=0, style={'backgroundColor': '#e0e0e0', 'color': dark_text, 'marginRight': '5px', 'padding': '8px 12px', 'lineHeight': 'normal', 'fontSize': '12px', 'fontWeight': 'bold', 'border': '1px solid #ccc', 'borderRadius': '4px', 'cursor': 'pointer'}), 
+            html.Button('CLEAR', id='clear_button', n_clicks=0, style={'backgroundColor': '#ffeaea', 'color': dark_text, 'padding': '8px 12px', 'lineHeight': 'normal', 'fontSize': '12px', 'fontWeight': 'bold', 'border': '1px solid #ccc', 'borderRadius': '4px', 'cursor': 'pointer'}),], style={'display': 'flex', 'marginTop': '10px'}),
+            dcc.Markdown(id='closest_movies_box', children="Enter an address and click Go to see the closest movies.", style={'marginTop': '10px', 'padding': '10px', 'backgroundColor': '#f5f5f5', 'border': '1px solid #ccc', 'borderRadius': '6px', 'color': dark_text}),
         ],
         className='options-panel',
-        style={
-            'backgroundColor': light_bg,
-            'padding': 20,
-            'borderRadius': 8,
-            'boxShadow': '0 2px 8px rgba(0,0,0,0.1)',
-            'width': '350px',
-            'minWidth': '300px'
-        }),
+        style={'backgroundColor': light_bg, 'padding': 10, 'borderRadius': 8, 'boxShadow': '0 2px 8px rgba(0,0,0,0.1)', 'width': '350px', 'minWidth': '300px'}),
     ],
     style={'display': 'flex', 'flexDirection': 'row', 'backgroundColor': light_bg},
     id='main-container'),
-    dcc.Markdown(
-                attribution_text,
-                style={'padding': '10px', 'color': dark_text, 'fontSize': '8px'}
-            )
+    dcc.Markdown(attribution_text, style={'padding': '10px', 'color': dark_text, 'fontSize': '8px'}),
 ], #app layout ends here
 style={'backgroundColor': light_bg, 'minHeight': '100vh'})
 
@@ -268,6 +207,8 @@ def haversine(lat1, lon1, lat2, lon2):
     a = np.sin(dphi/2.0)**2 + np.cos(phi1)*np.cos(phi2)*np.sin(dlambda/2.0)**2
     c = 2 * np.arctan2(np.sqrt(a), np.sqrt(1 - a))
     return R * c
+def camelcase_address(addr):
+    return ' '.join([w.capitalize() for w in str(addr).split()])
 
 # Global variable to track last geocode time
 last_geocode_time = 0
@@ -296,7 +237,7 @@ def update_all(selected_value, go_n_clicks, clear_n_clicks, address):
     # Build map
     fig = px.scatter_map(filt_df, **map_params)
     fig.update_traces(
-        marker=dict(size=10, opacity=0.4,
+        marker=dict(size=8, opacity=0.35,
                     colorbar=dict(
                         outlinecolor=dark_text,
                         outlinewidth=2,
@@ -307,7 +248,7 @@ def update_all(selected_value, go_n_clicks, clear_n_clicks, address):
         customdata=filt_df[['title', 'address', 'release_year', 'nhood']].values,
         hovertemplate=hovertemplate
     )
-    fig.update_layout(map_style=default_map_style)  # Match original code
+    fig.update_layout(map_style=default_map_style, margin=dict(l=5, r=5, t=5, b=5))  # Match original code
     # Closest movies logic
     ctx = callback_context
     closest_movies_text = ''
@@ -346,6 +287,7 @@ def update_all(selected_value, go_n_clicks, clear_n_clicks, address):
             closest_movies_text = "Geocoding request timed out. Please try again."
         except Exception as e:
             closest_movies_text = f"Geocoding failed: {e}"
+    N_locations = 3
     if user_lat is not None and user_lon is not None and (not closest_movies_text or 'outside of San Francisco' not in closest_movies_text):
         # Add a marker for the entered address
         fig.add_trace(go.Scattermap(
@@ -362,16 +304,18 @@ def update_all(selected_value, go_n_clicks, clear_n_clicks, address):
                 return haversine(user_lat, user_lon, row['latitude'], row['longitude'])
             else:
                 return float('inf')
+        
         plot_df['distance'] = plot_df.apply(get_dist, axis=1)
-        closest = plot_df.nsmallest(3, 'distance')
-        def camelcase_address(addr):
-            return ' '.join([w.capitalize() for w in str(addr).split()])
+        closest = plot_df.nsmallest(N_locations, 'distance')
         closest_movies_text = '  \n'.join([
-            f"* **{row['title']}** ({camelcase_address(row['address'])}) - {row['distance']:.0f} m" for _, row in closest.iterrows()
+            f""" \n **{row['title']}** 
+            {camelcase_address(row['address'])}, {row['distance']:.0f} m away""" for _, row in closest.iterrows()
         ])
-        closest_movies_text = f"Closest Filming locations: \n {closest_movies_text}" if closest_movies_text else "No nearby filming locations found."
+        closest_movies_text = f"Closest Filming Locations: \n {closest_movies_text}" if closest_movies_text else "No nearby filming locations found."
+
     elif not closest_movies_text:
-        closest_movies_text = "Enter an address and click Go to see the closest filming locations."
+        closest_movies_text = f"Enter an address and click Go to see the {N_locations} closest filming locations!"
+
     return options, value, fig, closest_movies_text, address
 
 if __name__ == '__main__':
