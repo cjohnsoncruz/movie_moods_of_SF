@@ -112,12 +112,6 @@ hovertemplate = (
     'Neighborhood: %{customdata[3]}<extra></extra>'
 )
 
-markdown_text = """ Welcome to the Movies of San Francisco Dashboard! \
-This dashboard shows filming locations for television and film productions in San Francisco. \
-\n
-Use the controls to filter by neighborhood. Filtering must be enabled for neighborhood selection to work. \
-"""
-
 attribution_text = """ Built May 2025 by Carlos Johnson-Cruz. (Last updated: June 8th 2025) """ 
 dropdown_col = 'nhood'
 dropdown_list = ['All'] + sorted(plot_df[dropdown_col].dropna().unique())
@@ -148,43 +142,89 @@ app.index_string = '''
 </html>
 '''
 
+markdown_text = f""" Welcome! This dashboard shows {len(plot_df)} Filming Locations for {len(plot_df["title"].unique())} productions
+released between {plot_df["release_year"].min()}-{plot_df["release_year"].max()} in San Francisco. \
+Use the controls to filter by neighborhood. \
+"""
+
 light_bg = '#f9f9f9'
 dark_text = '#222222'
 ## app layout starts here 
 app.layout = html.Div(
-    [
+    [# 1) Inline CSS first
+    dcc.Markdown('''
+                <style>
+                /* Desktop defaults */
+                #main-flex-row, .main-flex-row {
+                    display: flex;
+                    flex-direction: row; /* default; will override to column inline */
+                    flex-wrap: nowrap;
+                }
+
+                /* Map container */
+                .map-container { position: relative; }
+
+                /* Options panel as a full-width top bar */
+                .options-panel { 
+                    background: #f9f9f9;
+                    border-radius: 8px;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                    padding: 10px;
+                    width: 90%;
+                    max-width: 90%;
+                }
+
+                /* Mobile overrides */
+                @media (max-width: 1024px) {
+                    #main-flex-row {
+                        flex-direction: column !important;
+                        flex-wrap: nowrap !important;
+                        padding: 0 !important;
+                        margin: 0 !important;
+                        align-items: stretch !important;
+                    }
+
+                    /* Make the graph fully responsive */
+                    #graph {
+                        width: 100% !important;
+                        height: 50vh !important;
+                        min-width: 0 !important;
+                    }
+                }
+                </style>
+    ''', dangerously_allow_html=True),
     html.H3(
         'Movies of San Francisco:',
         style={'textAlign': 'left', 'color': dark_text, 'marginBottom': 10, 'marginTop': 10}
     ),
-    html.H6(
-        f' An Interactive Map of Filming Locations, plotting {len(plot_df)} locations from {len(plot_df["title"].unique())} productions released from {plot_df["release_year"].min()}-{plot_df["release_year"].max()}:',
+    dcc.Markdown(markdown_text,
         style={'textAlign': 'left', 'color': dark_text, 'marginBottom': 10, 'marginTop': 10}
     ), #end title section
     html.Div([
-        html.Div([dcc.Graph(id='graph', style={ #map style
-                'height': '50vh', #50% of viewport height
-                'width': '60vw', #60% of viewport width
-                'backgroundColor': light_bg,
-                 'boxShadow': '0 2px 8px rgba(0,0,0,0.1)'})], 
-                 className='map-container',
-                 style={'flex': 2, 'padding': 20, 'backgroundColor': light_bg, 'display': 'flex', 'marginRight': '20px'}),
-        html.Div([# sidebar
-            dcc.Markdown(children=markdown_text, style={'color': dark_text, 'backgroundColor': light_bg}),
+        # Options bar above the map (full width)
+        html.Div([
             html.Label('Filter by Neighborhood:', style={'fontWeight': 'bold', 'color': dark_text}),
             dcc.Dropdown(id='dropdown_list', style={'backgroundColor': light_bg, 'color': dark_text}),
             html.Label('Go to Address:', style={'fontWeight': 'bold', 'marginTop': 10, 'color': dark_text}),
             dcc.Input(id='address_input', type='text', placeholder='Enter address...', style={'width': '90%', 'backgroundColor': light_bg, 'color': dark_text}),
-            html.Div([html.Button('GO', id='go_button', n_clicks=0, style={'backgroundColor': '#e0e0e0', 'color': dark_text, 'marginRight': '5px', 'padding': '8px 12px', 'lineHeight': 'normal', 'fontSize': '12px', 'fontWeight': 'bold', 'border': '1px solid #ccc', 'borderRadius': '4px', 'cursor': 'pointer'}), 
-            html.Button('CLEAR', id='clear_button', n_clicks=0, style={'backgroundColor': '#ffeaea', 'color': dark_text, 'padding': '8px 12px', 'lineHeight': 'normal', 'fontSize': '12px', 'fontWeight': 'bold', 'border': '1px solid #ccc', 'borderRadius': '4px', 'cursor': 'pointer'}),], style={'display': 'flex', 'marginTop': '10px'}),
+            html.Div([
+                html.Button('GO', id='go_button', n_clicks=0, style={'backgroundColor': '#e0e0e0', 'color': dark_text, 'marginRight': '5px', 'padding': '8px 12px', 'lineHeight': 'normal', 'fontSize': '12px', 'fontWeight': 'bold', 'border': '1px solid #ccc', 'borderRadius': '4px', 'cursor': 'pointer'}), 
+                html.Button('CLEAR', id='clear_button', n_clicks=0, style={'backgroundColor': '#ffeaea', 'color': dark_text, 'padding': '8px 12px', 'lineHeight': 'normal', 'fontSize': '12px', 'fontWeight': 'bold', 'border': '1px solid #ccc', 'borderRadius': '4px', 'cursor': 'pointer'}),
+            ], style={'display': 'flex', 'marginTop': '10px'}),
             dcc.Markdown(id='closest_movies_box', children="Enter an address and click Go to see the closest movies.", style={'marginTop': '10px', 'padding': '10px', 'backgroundColor': '#f5f5f5', 'border': '1px solid #ccc', 'borderRadius': '6px', 'color': dark_text}),
-        ],
-        className='options-panel',
-        style={'backgroundColor': light_bg, 'padding': 10, 'borderRadius': 8, 'boxShadow': '0 2px 8px rgba(0,0,0,0.1)', 'width': '350px', 'minWidth': '300px'}),
-    ],
-    style={'display': 'flex', 'flexDirection': 'row', 'backgroundColor': light_bg},
-    id='main-container'),
-    dcc.Markdown(attribution_text, style={'padding': '10px', 'color': dark_text, 'fontSize': '8px'}),
+        ], className='options-panel'),
+
+        # Map below
+        html.Div([
+            dcc.Graph(id='graph', style={
+                'height': '60svh',
+                'width': '100%',
+                'backgroundColor': light_bg,
+                'boxShadow': '0 2px 8px rgba(0,0,0,0.1)'
+            })
+        ], className='map-container', style={'flex': 2, 'padding': 20, 'backgroundColor': light_bg, 'display': 'flex'}),
+    ], className='main-flex-row', style={'display': 'flex', 'flexDirection': 'column', 'gap': '10px', 'backgroundColor': light_bg}, id='main-flex-row'),
+    dcc.Markdown(attribution_text, style={'padding': '10px', 'color': dark_text, 'fontSize': '10px'}),
 ], #app layout ends here
 style={'backgroundColor': light_bg, 'minHeight': '100vh'})
 
