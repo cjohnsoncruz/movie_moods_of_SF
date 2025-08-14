@@ -112,7 +112,6 @@ hovertemplate = (
     'Neighborhood: %{customdata[3]}<extra></extra>'
 )
 
-attribution_text = """ Built May 2025 by Carlos Johnson-Cruz. (Last updated: June 8th 2025) """ 
 dropdown_col = 'nhood'
 dropdown_list = ['All'] + sorted(plot_df[dropdown_col].dropna().unique())
 
@@ -141,11 +140,13 @@ app.index_string = '''
     </body>
 </html>
 '''
-
+#store text to ddisplay 
 markdown_text = f""" Welcome! This dashboard shows {len(plot_df)} Filming Locations for {len(plot_df["title"].unique())} productions
 released between {plot_df["release_year"].min()}-{plot_df["release_year"].max()} in San Francisco. \
-Use the controls to filter by neighborhood. \
 """
+attribution_text = """“Cities, like dreams, are made of desires and fears, even if the thread of their discourse is secret,
+ their rules are absurd, their perspectives deceitful, and everything conceals something else.” ― Italo Calvino, Invisible Cities. <br>
+Built May 2025 by Carlos Johnson-Cruz. (Last updated: June 8th 2025) """ 
 
 light_bg = '#f9f9f9'
 dark_text = '#222222'
@@ -211,7 +212,8 @@ app.layout = html.Div(
                 html.Button('GO', id='go_button', n_clicks=0, style={'backgroundColor': '#e0e0e0', 'color': dark_text, 'marginRight': '5px', 'padding': '8px 12px', 'lineHeight': 'normal', 'fontSize': '12px', 'fontWeight': 'bold', 'border': '1px solid #ccc', 'borderRadius': '4px', 'cursor': 'pointer'}), 
                 html.Button('CLEAR', id='clear_button', n_clicks=0, style={'backgroundColor': '#ffeaea', 'color': dark_text, 'padding': '8px 12px', 'lineHeight': 'normal', 'fontSize': '12px', 'fontWeight': 'bold', 'border': '1px solid #ccc', 'borderRadius': '4px', 'cursor': 'pointer'}),
             ], style={'display': 'flex', 'marginTop': '10px'}),
-            dcc.Markdown(id='closest_movies_box', children="Enter an address and click Go to see the closest movies.", style={'marginTop': '10px', 'padding': '10px', 'backgroundColor': '#f5f5f5', 'border': '1px solid #ccc', 'borderRadius': '6px', 'color': dark_text}),
+            dcc.Markdown(id='closest_movies_box', children="Enter an address and click Go to see the closest movies.",
+             style={'marginTop': '5px', 'padding': '10px', 'backgroundColor': '#f5f5f5', 'border': '1px solid #ccc', 'borderRadius': '6px', 'width': '70%', 'color': dark_text}),
         ], className='options-panel'),
 
         # Map below
@@ -224,7 +226,8 @@ app.layout = html.Div(
             })
         ], className='map-container', style={'flex': 2, 'padding': 20, 'backgroundColor': light_bg, 'display': 'flex'}),
     ], className='main-flex-row', style={'display': 'flex', 'flexDirection': 'column', 'gap': '10px', 'backgroundColor': light_bg}, id='main-flex-row'),
-    dcc.Markdown(attribution_text, style={'padding': '10px', 'color': dark_text, 'fontSize': '10px'}),
+    dcc.Markdown(attribution_text, style={
+        'marginTop': '65px', 'padding': '20px', 'color': dark_text, 'fontSize': '10px'}, dangerously_allow_html=True),
 ], #app layout ends here
 style={'backgroundColor': light_bg, 'minHeight': '100vh'})
 
