@@ -27,3 +27,7 @@ Thumbs.db
 # Docker compose overrides and logs
 docker-compose.override.yml
 *.log
+
+# Documentation
+docs/GITHUB_ACTIONS_SETUP.md
+docs/QUICKSTART.md

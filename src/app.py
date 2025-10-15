@@ -146,7 +146,7 @@ released between {plot_df["release_year"].min()}-{plot_df["release_year"].max()}
 """
 attribution_text = """“Cities, like dreams, are made of desires and fears, even if the thread of their discourse is secret,
  their rules are absurd, their perspectives deceitful, and everything conceals something else.” ― Italo Calvino, Invisible Cities. <br>
-Built May 2025 by Carlos Johnson-Cruz. (Filming data last updated: June 8th 2025) """ 
+Hosted in May 2025 by Carlos Johnson-Cruz. (Filming data updated weekly) """ 
 
 light_bg = '#f9f9f9'
 dark_text = '#222222'

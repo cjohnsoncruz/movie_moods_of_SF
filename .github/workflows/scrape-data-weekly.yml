@@ -1,0 +1,120 @@
+name: Weekly Data Scraping Pipeline
+
+on:
+  # Run every Sunday at 2:00 AM UTC (6 PM PST Saturday / 7 PM PDT Saturday)
+  schedule:
+    - cron: '0 2 * * 0'
+  
+  # Allow manual triggering from GitHub UI
+  workflow_dispatch:
+    inputs:
+      skip_upload:
+        description: 'Skip S3 upload (for testing)'
+        required: false
+        default: 'false'
+
+jobs:
+  scrape-and-process:
+    runs-on: ubuntu-latest
+    
+    steps:
+      # Step 1: Checkout repository code
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      
+      # Step 2: Set up Python environment
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          cache: 'pip'  # Cache pip dependencies for faster builds
+      
+      # Step 3: Install system dependencies for geopandas
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            gdal-bin \
+            libgdal-dev \
+            libspatialindex-dev
+      
+      # Step 4: Install Python dependencies
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      
+      # Step 5: Configure AWS credentials
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+      
+      # Step 6: Create OMDB API key file
+      - name: Create OMDB API key file
+        run: |
+          echo "${{ secrets.OMDB_API_KEY }}" > omdb_api_key.txt
+        working-directory: ${{ github.workspace }}
+      
+      # Step 7: Create data directory
+      - name: Create data directory
+        run: |
+          mkdir -p data
+      
+      # Step 8: Run the data pipeline
+      - name: Run data scraping and processing pipeline
+        env:
+          S3_BUCKET: ${{ secrets.S3_BUCKET }}
+          S3_KEY: ${{ secrets.S3_KEY }}
+          OMDB_API_KEY: ${{ secrets.OMDB_API_KEY }}
+          SKIP_UPLOAD: ${{ github.event.inputs.skip_upload }}
+        run: |
+          python src/run_data_pipeline.py
+      
+      # Step 9: Upload artifacts (for debugging)
+      - name: Upload processed data as artifact
+        if: always()  # Run even if pipeline fails
+        uses: actions/upload-artifact@v3
+        with:
+          name: processed-data-${{ github.run_number }}
+          path: |
+            data/processed_movie_locations.csv
+            data/dataframe_omdb_info.csv
+            data/Landmark_table_from_wikipedia.csv
+          retention-days: 7
+      
+      # Step 10: Clean up sensitive files
+      - name: Clean up sensitive files
+        if: always()
+        run: |
+          rm -f omdb_api_key.txt
+      
+      # Step 11: Notify on failure (optional)
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "::error::Data pipeline failed. Check the logs above for details."
+          echo "::notice::You can download the artifacts to debug the issue."
+
+  # Optional: Trigger deployment after successful data update
+  trigger-deployment:
+    needs: scrape-and-process
+    runs-on: ubuntu-latest
+    if: success()
+    
+    steps:
+      - name: Trigger ECS deployment
+        uses: actions/github-script@v6
+        with:
+          script: |
+            console.log('Data pipeline completed successfully.');
+            console.log('Consider triggering your CI/CD workflow to redeploy the app with fresh data.');
+            // Uncomment below to automatically trigger the CI/CD workflow:
+            // await github.rest.actions.createWorkflowDispatch({
+            //   owner: context.repo.owner,
+            //   repo: context.repo.repo,
+            //   workflow_id: 'ci-cd.yml',
+            //   ref: 'main'
+            // });
