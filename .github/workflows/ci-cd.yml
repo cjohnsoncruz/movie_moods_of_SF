@@ -25,7 +25,9 @@ jobs:
           aws-region:            ${{ secrets.AWS_REGION }}
 
       - name: Log in to Amazon ECR
-        uses: aws-actions/amazon-ecr-login@v1
+        uses: aws-actions/amazon-ecr-login@v2
+        with:
+          mask-password: true
 
       - name: Build & push Docker image
         run: |
