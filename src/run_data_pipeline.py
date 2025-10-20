@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
 Automated data pipeline orchestrating the complete ETL process:
+0. (Optional) Fetch raw data from SF Socrata API
 1. Scrape Wikipedia for SF landmarks
 2. Query OMDB API for movie metadata
 3. Integrate and process all data sources
@@ -71,6 +72,71 @@ def run_script(script_path: Path, description: str) -> bool:
         return False
 
 
+def fetch_from_socrata() -> bool:
+    """
+    Fetch raw film location data from SF's Socrata API.
+    Only runs if FETCH_SOCRATA environment variable is set to 'true'.
+    
+    Returns:
+        True if successful or skipped, False on error
+    """
+    logger.info("Starting: Fetch raw data from Socrata API")
+    
+    # Check if we should fetch from Socrata
+    fetch_enabled = os.environ.get("FETCH_SOCRATA", "false").lower() == "true"
+    if not fetch_enabled:
+        logger.info("Skipping Socrata fetch (FETCH_SOCRATA not set to 'true')")
+        logger.info("Using existing CSV file instead.")
+        return True
+    
+    try:
+        from sodapy import Socrata
+    except ImportError:
+        logger.error("sodapy not installed. Install with: pip install sodapy")
+        return False
+    
+    # Configuration
+    SF_DATABASE = 'data.sfgov.org'
+    FILM_LOCATIONS_DATASET = 'yitu-d5am'
+    OUTPUT_FILE = DATA_DIR / "Movie_Location_Dataframe_w_Guess.csv"
+    SODA_TOKEN_PATH = PROJECT_ROOT / "sodapy_app_token.txt"
+    
+    # Load sodapy token if available
+    soda_token = None
+    if SODA_TOKEN_PATH.exists():
+        with open(SODA_TOKEN_PATH, 'r') as f:
+            soda_token = f.read().strip()
+            logger.info("Using sodapy app token from sodapy_app_token.txt")
+    else:
+        logger.warning("No sodapy_app_token.txt found. API will be rate-limited.")
+        logger.warning("Get a free token at: https://data.sfgov.org/profile/app_tokens")
+    
+    # Fetch data
+    client = Socrata(SF_DATABASE, soda_token)
+    try:
+        logger.info(f"Fetching film locations from dataset: {FILM_LOCATIONS_DATASET}")
+        logger.info("This may take 1-2 minutes...")
+        
+        results = client.get(FILM_LOCATIONS_DATASET, limit=10000)
+        
+        # Convert to DataFrame and save
+        import pandas as pd
+        df = pd.DataFrame.from_records(results)
+        
+        logger.info(f"Fetched {len(df)} film location records")
+        df.to_csv(OUTPUT_FILE, index=False)
+        logger.info(f"Saved to: {OUTPUT_FILE}")
+        logger.info(f"✓ Completed: Fetch raw data from Socrata API")
+        
+        return True
+        
+    except Exception as e:
+        logger.error(f"✗ Failed to fetch from Socrata: {e}")
+        return False
+    finally:
+        client.close()
+
+
 def upload_to_s3() -> bool:
     """
     Upload the processed CSV to S3 using AWS CLI.
@@ -133,6 +199,13 @@ def main():
     
     # Ensure data directory exists
     DATA_DIR.mkdir(exist_ok=True, parents=True)
+    
+    # Step 0: Optional Socrata fetch
+    if not fetch_from_socrata():
+        logger.error("Failed to fetch from Socrata (if enabled)")
+        logger.info("Continuing with existing data file...")
+    
+    logger.info("-" * 80)
     
     # Define pipeline steps
     steps = [

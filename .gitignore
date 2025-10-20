@@ -2,8 +2,10 @@
 __pycache__/
 *.py[cod]
 
-# Environment variables
+# Environment variables and API keys
 .env
+omdb_api_key.txt
+sodapy_app_token*.txt
 
 # Virtual environments
 env/

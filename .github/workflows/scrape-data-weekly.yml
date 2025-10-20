@@ -8,10 +8,22 @@ on:
   # Allow manual triggering from GitHub UI
   workflow_dispatch:
     inputs:
+      fetch_socrata:
+        description: 'Fetch fresh data from Socrata API (requires sodapy)'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
       skip_upload:
         description: 'Skip S3 upload (for testing)'
         required: false
         default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
 
 jobs:
   scrape-and-process:
@@ -71,6 +83,7 @@ jobs:
       # Step 8: Run the data pipeline
       - name: Run data scraping and processing pipeline
         env:
+          FETCH_SOCRATA: ${{ github.event.inputs.fetch_socrata }}
           S3_BUCKET: ${{ secrets.S3_BUCKET }}
           S3_KEY: ${{ secrets.S3_KEY }}
           OMDB_API_KEY: ${{ secrets.OMDB_API_KEY }}
