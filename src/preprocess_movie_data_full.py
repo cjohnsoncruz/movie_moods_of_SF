@@ -49,26 +49,37 @@ else:
 from tqdm import tqdm
 from thefuzz import process, fuzz
 
-# 1. Exact match to landmark
-if 'locations' in df_movie_location.columns:
-    df_movie_location['address'] = df_movie_location.apply(
-        lambda row: df_landmark_wiki.loc[df_landmark_wiki['Landmark Name'] == str(row['locations']).strip().lower(), 'Address'].iloc[0]
-        if not df_landmark_wiki.loc[df_landmark_wiki['Landmark Name'] == str(row['locations']).strip().lower()].empty
-        else row.get('address', np.nan),
-        axis=1
-    )
+# Preserve existing addresses from raw data, only add landmark addresses for rows without addresses
+# 1. Ensure address column exists and fill empty/NaN with landmark matches
+if 'address' not in df_movie_location.columns:
+    df_movie_location['address'] = np.nan
 
-# 2. Fuzzy match for locations with address still missing or 'Empty'
-missing_addr = df_movie_location['address'].isna() | (df_movie_location['address'] == 'Empty')
-if missing_addr.any():
-    landmark_names = df_landmark_wiki['Landmark Name'].tolist()
-    for idx, row in tqdm(df_movie_location[missing_addr].iterrows(), total=missing_addr.sum(), desc='Fuzzy landmark match'):
-        loc = str(row['locations']).strip().lower()
-        match = process.extractOne(loc, landmark_names, scorer=fuzz.token_set_ratio)
-        # Accept only if similarity >= 90
-        if match and match[1] >= 90:
-            address = df_landmark_wiki.loc[df_landmark_wiki['Landmark Name'] == match[0], 'Address'].iloc[0]
-            df_movie_location.at[idx, 'address'] = address
+# 2. Only try to match landmarks for rows WITHOUT existing addresses
+missing_addr = df_movie_location['address'].isna() | (df_movie_location['address'] == 'Empty') | (df_movie_location['address'] == '')
+print(f"Rows with missing addresses before landmark matching: {missing_addr.sum()}")
+
+if missing_addr.any() and 'locations' in df_movie_location.columns:
+    # First, exact match to landmark
+    for idx, row in df_movie_location[missing_addr].iterrows():
+        loc_lower = str(row['locations']).strip().lower()
+        landmark_match = df_landmark_wiki.loc[df_landmark_wiki['Landmark Name'] == loc_lower, 'Address']
+        if not landmark_match.empty:
+            df_movie_location.at[idx, 'address'] = landmark_match.iloc[0]
+    
+    # Then fuzzy match for remaining missing addresses
+    still_missing = df_movie_location['address'].isna() | (df_movie_location['address'] == 'Empty') | (df_movie_location['address'] == '')
+    if still_missing.any():
+        landmark_names = df_landmark_wiki['Landmark Name'].tolist()
+        for idx, row in tqdm(df_movie_location[still_missing].iterrows(), total=still_missing.sum(), desc='Fuzzy landmark match'):
+            loc = str(row['locations']).strip().lower()
+            match = process.extractOne(loc, landmark_names, scorer=fuzz.token_set_ratio)
+            # Accept only if similarity >= 90
+            if match and match[1] >= 90:
+                address = df_landmark_wiki.loc[df_landmark_wiki['Landmark Name'] == match[0], 'Address'].iloc[0]
+                df_movie_location.at[idx, 'address'] = address
+
+final_missing = df_movie_location['address'].isna() | (df_movie_location['address'] == 'Empty') | (df_movie_location['address'] == '')
+print(f"Rows still missing addresses after landmark matching: {final_missing.sum()}")
 
 # 3. Geocoding is omitted because geopy/Nominatim is not in requirements_movie_sf.txt. If coordinates are missing, they remain NaN.
 # If you wish to enable geocoding, please add geopy to your requirements and re-enable this section.

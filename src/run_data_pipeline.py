@@ -123,7 +123,22 @@ def fetch_from_socrata() -> bool:
         import pandas as pd
         df = pd.DataFrame.from_records(results)
         
-        logger.info(f"Fetched {len(df)} film location records. Latest release: {df['release_year'].max()}")
+        logger.info(f"Fetched {len(df)} film location records. Latest release: {df.get('release_year', pd.Series()).max() if 'release_year' in df.columns else 'N/A'}")
+        logger.info(f"Columns fetched from Socrata: {list(df.columns[:15])}...") # Log first 15 columns
+        
+        # Map SF Gov column names to our expected names
+        column_mapping = {
+            'analysis_neighborhood': 'nhood',
+            'Analysis Neighborhood': 'nhood'
+        }
+        df.rename(columns=column_mapping, inplace=True)
+        
+        # Check if nhood column exists after mapping
+        if 'nhood' in df.columns:
+            logger.info(f"Neighborhood data included: {df['nhood'].notna().sum()} rows have nhood")
+        else:
+            logger.warning("WARNING: 'nhood' column not found in Socrata data after mapping")
+        
         df.to_csv(OUTPUT_FILE, index=False)
         logger.info(f"Saved to: {OUTPUT_FILE}")
         logger.info(f"✓ Completed: Fetch raw data from Socrata API")
