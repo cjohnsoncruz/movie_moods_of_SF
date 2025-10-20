@@ -1,33 +1,24 @@
 # Requirements for data scraping and processing pipeline
 # Used by GitHub Actions for automated data updates
-
 # Core data processing
 pandas>=2.0.0
 numpy<2
-
 # Web scraping
 requests>=2.31.0
 beautifulsoup4>=4.12.0
 bs4
-
 # Fuzzy matching for landmarks
 thefuzz>=0.20.0
-
 # Progress bars
 tqdm>=4.65.0
-
 # AWS S3 integration
 boto3>=1.26.0
-
 # Environment variables
 python-dotenv>=1.0.0
-
 # Geographic data processing (needed for existing scripts)
 geopandas>=0.14.0
 shapely>=2.0.6
-
 # CLI tools
 click>=8.0.3
-
 # Data source API
 sodapy>=1.5.2
