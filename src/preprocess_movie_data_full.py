@@ -91,12 +91,16 @@ if 'longitude' in df_movie_location.columns:
     df_movie_location['longitude'] = pd.to_numeric(df_movie_location['longitude'], errors='coerce')
 if 'latitude' in df_movie_location.columns:
     df_movie_location['latitude'] = pd.to_numeric(df_movie_location['latitude'], errors='coerce')
+if 'title' in df_movie_location.columns:
+    df_movie_location['title'] = df_movie_location['title'].astype(str)
+if 'address' in df_movie_location.columns:
+    df_movie_location['address'] = df_movie_location['address'].fillna('').astype(str)
 if 'release_year' in df_movie_location.columns:
     df_movie_location['release_year'] = pd.to_numeric(df_movie_location['release_year'], errors='coerce').astype('Int64')
 if 'release_decade' in df_movie_location.columns:
     df_movie_location['release_decade'] = pd.to_numeric(df_movie_location['release_decade'], errors='coerce').astype('Int64')
 if 'nhood' in df_movie_location.columns:
-    df_movie_location['nhood'] = df_movie_location['nhood'].astype(str)
+    df_movie_location['nhood'] = df_movie_location['nhood'].fillna('').astype(str)
 
 map_df = df_movie_location.dropna(subset=['longitude', 'latitude', 'title'])
 map_df[required_cols].to_csv(OUTPUT_CSV, index=False)

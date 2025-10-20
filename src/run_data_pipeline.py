@@ -223,11 +223,6 @@ def main():
             "script": PROJECT_ROOT / "src" / "integrate_omdb_to_locations.py",
             "description": "Integrate OMDB data with locations",
             "required": False  # Optional if this step doesn't exist
-        },
-        {
-            "script": PROJECT_ROOT / "src" / "preprocess_movie_data.py",
-            "description": "Final data processing and cleanup",
-            "required": True
         }
     ]
     
