@@ -41,12 +41,14 @@ def run_script(script_path: Path, description: str) -> bool:
     logger.info(f"Running script: {script_path}")
     
     try:
+        # Inherit environment variables from parent process
         result = subprocess.run(
             [sys.executable, str(script_path)],
             cwd=PROJECT_ROOT,
             capture_output=True,
             text=True,
-            check=True
+            check=True,
+            env=os.environ.copy()
         )
         
         # Log output
@@ -175,11 +177,15 @@ def main():
             else:
                 logger.warning(f"Non-critical step failed, continuing: {step['description']}")
     
-    # Upload to S3 if all steps succeeded
+    # Upload to S3 if all steps succeeded and not skipped
     if success:
         logger.info("-" * 80)
-        if not upload_to_s3():
-            success = False
+        skip_upload = os.environ.get("SKIP_UPLOAD", "false").lower() == "true"
+        if skip_upload:
+            logger.info("Skipping S3 upload (SKIP_UPLOAD=true)")
+        else:
+            if not upload_to_s3():
+                success = False
     
     # Final summary
     logger.info("=" * 80)

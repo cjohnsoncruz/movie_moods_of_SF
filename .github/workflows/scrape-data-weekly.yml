@@ -56,6 +56,11 @@ jobs:
       - name: Create OMDB API key file
         run: |
           echo "${{ secrets.OMDB_API_KEY }}" > omdb_api_key.txt
+          if [ ! -s omdb_api_key.txt ]; then
+            echo "ERROR: OMDB_API_KEY secret is empty or not set!"
+            exit 1
+          fi
+          echo "OMDB API key file created successfully ($(wc -c < omdb_api_key.txt) bytes)"
         working-directory: ${{ github.workspace }}
       
       # Step 7: Create data directory
@@ -71,6 +76,12 @@ jobs:
           OMDB_API_KEY: ${{ secrets.OMDB_API_KEY }}
           SKIP_UPLOAD: ${{ github.event.inputs.skip_upload }}
         run: |
+          # Verify secrets are set
+          if [ -z "$S3_BUCKET" ]; then
+            echo "ERROR: S3_BUCKET secret is not set in GitHub repository settings!"
+            exit 1
+          fi
+          echo "Environment check passed. Starting pipeline..."
           python src/run_data_pipeline.py
       
       # Step 9: Upload artifacts (for debugging)
