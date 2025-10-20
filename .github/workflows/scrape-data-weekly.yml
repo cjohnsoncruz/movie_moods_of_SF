@@ -76,7 +76,7 @@ jobs:
       # Step 9: Upload artifacts (for debugging)
       - name: Upload processed data as artifact
         if: always()  # Run even if pipeline fails
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: processed-data-${{ github.run_number }}
           path: |
