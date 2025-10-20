@@ -74,13 +74,19 @@ def run_script(script_path: Path, description: str) -> bool:
 
 def fetch_from_socrata() -> bool:
     """
-    Fetch raw film location data from SF's Socrata API.
+    Fetch raw film location data from SF's Socrata API with full address matching.
     Only runs if FETCH_SOCRATA environment variable is set to 'true'.
+    
+    This runs the fetch_and_match_addresses.py script which:
+    - Fetches film locations from Socrata
+    - Fetches ALL SF addresses (224k) from Socrata
+    - Uses fuzzy matching to match locations to addresses
+    - Enriches with lat/lon and neighborhood data
     
     Returns:
         True if successful or skipped, False on error
     """
-    logger.info("Starting: Fetch raw data from Socrata API")
+    logger.info("Starting: Fetch and match addresses from Socrata API")
     
     # Check if we should fetch from Socrata
     fetch_enabled = os.environ.get("FETCH_SOCRATA", "false").lower() == "true"
@@ -89,67 +95,44 @@ def fetch_from_socrata() -> bool:
         logger.info("Using existing CSV file instead.")
         return True
     
-    try:
-        from sodapy import Socrata
-    except ImportError:
-        logger.error("sodapy not installed. Install with: pip install sodapy")
+    # Run the comprehensive fetch_and_match_addresses script
+    logger.info("Running comprehensive address matching pipeline...")
+    logger.info("This will fetch ~224k SF addresses and perform fuzzy matching (may take 5-10 minutes)")
+    
+    script_path = PROJECT_ROOT / "src" / "fetch_and_match_addresses.py"
+    
+    if not script_path.exists():
+        logger.error(f"Script not found: {script_path}")
         return False
     
-    # Configuration
-    SF_DATABASE = 'data.sfgov.org'
-    FILM_LOCATIONS_DATASET = 'yitu-d5am'
-    OUTPUT_FILE = DATA_DIR / "Movie_Location_Dataframe_w_Guess.csv"
-    SODA_TOKEN_PATH = PROJECT_ROOT / "sodapy_app_token.txt"
-    
-    # Load sodapy token if available
-    soda_token = None
-    if SODA_TOKEN_PATH.exists():
-        with open(SODA_TOKEN_PATH, 'r') as f:
-            soda_token = f.read().strip()
-            logger.info("Using sodapy app token from sodapy_app_token.txt")
-    else:
-        logger.warning("No sodapy_app_token.txt found. API will be rate-limited.")
-        logger.warning("Get a free token at: https://data.sfgov.org/profile/app_tokens")
-    
-    # Fetch data
-    client = Socrata(SF_DATABASE, soda_token)
     try:
-        logger.info(f"Fetching film locations from dataset: {FILM_LOCATIONS_DATASET}")
-        logger.info("This may take 1-2 minutes...")
+        result = subprocess.run(
+            [sys.executable, str(script_path)],
+            cwd=PROJECT_ROOT,
+            capture_output=True,
+            text=True,
+            check=True,
+            env=os.environ.copy()
+        )
         
-        results = client.get(FILM_LOCATIONS_DATASET, limit=10000)
+        # Log output
+        if result.stdout:
+            logger.info(f"Script output:\n{result.stdout}")
+        if result.stderr:
+            logger.warning(f"Script stderr:\n{result.stderr}")
         
-        # Convert to DataFrame and save
-        import pandas as pd
-        df = pd.DataFrame.from_records(results)
-        
-        logger.info(f"Fetched {len(df)} film location records. Latest release: {df.get('release_year', pd.Series()).max() if 'release_year' in df.columns else 'N/A'}")
-        logger.info(f"Columns fetched from Socrata: {list(df.columns[:15])}...") # Log first 15 columns
-        
-        # Map SF Gov column names to our expected names
-        column_mapping = {
-            'analysis_neighborhood': 'nhood',
-            'Analysis Neighborhood': 'nhood'
-        }
-        df.rename(columns=column_mapping, inplace=True)
-        
-        # Check if nhood column exists after mapping
-        if 'nhood' in df.columns:
-            logger.info(f"Neighborhood data included: {df['nhood'].notna().sum()} rows have nhood")
-        else:
-            logger.warning("WARNING: 'nhood' column not found in Socrata data after mapping")
-        
-        df.to_csv(OUTPUT_FILE, index=False)
-        logger.info(f"Saved to: {OUTPUT_FILE}")
-        logger.info(f"✓ Completed: Fetch raw data from Socrata API")
-        
+        logger.info(f"✓ Completed: Fetch and match addresses from Socrata API")
         return True
         
-    except Exception as e:
-        logger.error(f"✗ Failed to fetch from Socrata: {e}")
+    except subprocess.CalledProcessError as e:
+        logger.error(f"✗ Failed to fetch/match addresses")
+        logger.error(f"Exit code: {e.returncode}")
+        logger.error(f"Stdout:\n{e.stdout}")
+        logger.error(f"Stderr:\n{e.stderr}")
         return False
-    finally:
-        client.close()
+    except Exception as e:
+        logger.error(f"✗ Unexpected error running address matcher: {e}")
+        return False
 
 
 def upload_to_s3() -> bool:
