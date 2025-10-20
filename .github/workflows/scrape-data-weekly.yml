@@ -78,7 +78,7 @@ jobs:
           # Sodapy app token (optional, only needed if FETCH_SOCRATA=true)
           if [ -n "${{ secrets.SODAPY_APP_TOKEN }}" ]; then
             echo "${{ secrets.SODAPY_APP_TOKEN }}" > sodapy_app_token.txt
-            echo "Sodapy app token file created successfully"
+            echo "Sodapy app token file created for run successfully"
           else
             echo "No SODAPY_APP_TOKEN secret configured (will use rate-limited API)"
           fi
@@ -92,17 +92,19 @@ jobs:
       # Step 8: Run the data pipeline
       - name: Run data scraping and processing pipeline
         env:
-          FETCH_SOCRATA: ${{ github.event.inputs.fetch_socrata }}
+          # For manual triggers: use input value. For scheduled runs: default to 'false' (use committed CSV)
+          FETCH_SOCRATA: ${{ github.event.inputs.fetch_socrata || 'false' }}
           S3_BUCKET: ${{ secrets.S3_BUCKET }}
           S3_KEY: ${{ secrets.S3_KEY }}
           OMDB_API_KEY: ${{ secrets.OMDB_API_KEY }}
-          SKIP_UPLOAD: ${{ github.event.inputs.skip_upload }}
+          SKIP_UPLOAD: ${{ github.event.inputs.skip_upload || 'false' }}
         run: |
           # Verify secrets are set
           if [ -z "$S3_BUCKET" ]; then
             echo "ERROR: S3_BUCKET secret is not set in GitHub repository settings!"
             exit 1
           fi
+          echo "FETCH_SOCRATA is set to: $FETCH_SOCRATA"
           echo "Environment check passed. Starting pipeline..."
           python src/run_data_pipeline.py
       

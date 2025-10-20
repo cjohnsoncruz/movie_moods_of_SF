@@ -33,3 +33,4 @@ docker-compose.override.yml
 # Documentation
 docs/GITHUB_ACTIONS_SETUP.md
 docs/QUICKSTART.md
+docs/MANUAL_DATA_REFRESH.md
