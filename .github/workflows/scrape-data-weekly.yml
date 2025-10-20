@@ -64,15 +64,24 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
       
-      # Step 6: Create OMDB API key file
-      - name: Create OMDB API key file
+      # Step 6: Create API key files
+      - name: Create API key files
         run: |
+          # OMDB API key (required)
           echo "${{ secrets.OMDB_API_KEY }}" > omdb_api_key.txt
           if [ ! -s omdb_api_key.txt ]; then
             echo "ERROR: OMDB_API_KEY secret is empty or not set!"
             exit 1
           fi
           echo "OMDB API key file created successfully ($(wc -c < omdb_api_key.txt) bytes)"
+          
+          # Sodapy app token (optional, only needed if FETCH_SOCRATA=true)
+          if [ -n "${{ secrets.SODAPY_APP_TOKEN }}" ]; then
+            echo "${{ secrets.SODAPY_APP_TOKEN }}" > sodapy_app_token.txt
+            echo "Sodapy app token file created successfully"
+          else
+            echo "No SODAPY_APP_TOKEN secret configured (will use rate-limited API)"
+          fi
         working-directory: ${{ github.workspace }}
       
       # Step 7: Create data directory
@@ -114,6 +123,7 @@ jobs:
         if: always()
         run: |
           rm -f omdb_api_key.txt
+          rm -f sodapy_app_token.txt
       
       # Step 11: Notify on failure (optional)
       - name: Notify on failure

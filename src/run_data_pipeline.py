@@ -123,7 +123,7 @@ def fetch_from_socrata() -> bool:
         import pandas as pd
         df = pd.DataFrame.from_records(results)
         
-        logger.info(f"Fetched {len(df)} film location records")
+        logger.info(f"Fetched {len(df)} film location records. Latest release: {df['release_year'].max()}")
         df.to_csv(OUTPUT_FILE, index=False)
         logger.info(f"Saved to: {OUTPUT_FILE}")
         logger.info(f"✓ Completed: Fetch raw data from Socrata API")
